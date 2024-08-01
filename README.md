@@ -1,1 +1,3 @@
 # 3DPoseDataGen
+
+bvhファイルからblenderで3DPoseEstimationのDatasetを作成する
