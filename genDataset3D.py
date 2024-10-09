@@ -12,25 +12,48 @@ from pathlib import Path
 from blenderproc.python.types.MeshObjectUtility import scene_ray_cast
 from mathutils import Vector
 
-# H3.6Mに準ずる32個の関節点のうち、動作に関わる17個の関節点について再定義
-H36M_NAMES = ['']*17
-H36M_NAMES[0]  = 'Hip'
-H36M_NAMES[1]  = 'RHip'
-H36M_NAMES[2]  = 'RKnee'
-H36M_NAMES[3]  = 'RFoot'
-H36M_NAMES[4]  = 'LHip'
-H36M_NAMES[5]  = 'LKnee'
-H36M_NAMES[6]  = 'LFoot'
-H36M_NAMES[7] = 'Spine'
-H36M_NAMES[8] = 'Thorax'
-H36M_NAMES[9] = 'Neck/Nose'
-H36M_NAMES[10] = 'Head'
-H36M_NAMES[11] = 'LShoulder'
-H36M_NAMES[12] = 'LElbow'
-H36M_NAMES[13] = 'LWrist'
-H36M_NAMES[14] = 'RShoulder'
-H36M_NAMES[15] = 'RElbow'
-H36M_NAMES[16] = 'RWrist'
+# H3.6Mに準ずる32個の関節点のうち、動作に関わる17個の関節点を用いる
+# H3.6Mとbvhのキーポイントの対応付けを以下のように定義する
+bone_mapping = {
+    'Hips': 'Hip',
+    'UpperLeg_R': 'RHip',
+    'LowerLeg_R': 'RKnee',
+    'Foot_R': 'RFoot' ,
+    'UpperLeg_L': 'LHip',
+    'LowerLeg_L': 'LKnee',
+    'Foot_L': 'LFoot',
+    'Spine': 'Spine',
+    'Chest': 'Thorax',
+    'Neck': 'Neck',
+    'Head': 'Head',
+    'Shoulder_R': 'RShoulder',
+    'UpperArm_R': 'RElbow',
+    'LowerArm_R': 'RWrist',
+    'Shoulder_L': 'LShoulder',
+    'UpperArm_L': 'LElbow',
+    'LowerArm_L': 'LWrist'
+}
+bone_order = {
+    'Hip': 0,
+    'RHip': 1,
+    'RKnee': 2,
+    'RFoot': 3,
+    'LHip': 4,
+    'LKnee': 5,
+    'LFoot': 6,
+    'Spine': 7,
+    'Thorax': 8,
+    'Neck': 9,
+    'Head': 10,
+    'LShoulder': 11,
+    'LElbow': 12,
+    'LWrist': 13,
+    'RShoulder': 14,
+    'RElbow': 15,
+    'RWrist': 16
+}
+
+
 
 # bandaiデータセットを使う場合、rootと手は使わないので隠す
 # ただし足はヘッドを使うため残す
@@ -162,17 +185,18 @@ def camera_resolution(x=224, y=224, per=100):
     bpy.context.scene.render.resolution_y = y
     bpy.context.scene.render.resolution_percentage = per
 
-def get_3d_coordinates()
+def get_3d_coordinates():
 
 
-def get_2d_coordinates(scene, camera, bone, resolution_x, resolution_y):
+
+def get_coordinates(scene, camera, bone, resolution_x, resolution_y):
     '''
     カメラビューにおける二次元座標を取得
     '''
     cam_inv_matrix = camera.matrix_world.inverted()  # カメラの逆行列（ビュー空間への変換用）
 
     # 足ボーンの場合はヘッドをそれ以外ではテールの座標を取得
-    if bone.name in ['UpperLeg_R', 'UpperLeg_L', 'LowerLeg_R', 'LowerLeg_L']:
+    if bone.name in ['UpperLeg_R', 'UpperLeg_L', 'LowerLeg_R', 'LowerLeg_L', 'Foot_R', 'Foot_L', 'Hips', 'Spine']:
         bone_world_pos = bone.head
     else:
         bone_world_pos = bone.tail  # ボーンのワールド座標を取得
@@ -201,7 +225,12 @@ def get_2d_coordinates(scene, camera, bone, resolution_x, resolution_y):
     coordinate_x = round(coordinate_x)
     coordinate_y = round(coordinate_y)
 
-    return coordinate_x, coordinate_y
+    return [coordinate_x, coordinate_y], list(bone_world_pos), bone.name
+
+def sort_keypoints(coordinats, bone_name, keypoint_list):
+    key = bone_mapping[bone_name]
+    value = bone_order[key]
+    keypoint_list[value] = coordinats
 
 
 def save_keypoints(annotations, output_path):
@@ -250,16 +279,23 @@ def main(num_data, input_path, output_path):
                 # フレームのロード
                 bpy.context.scene.frame_set(frame)
                 scene = bpy.context.scene
-                camera = bpy.context.objects['Camera']
+                camera = bpy.data.objects['Camera']
 
+                keypoint_2d = [0 for _ in range(17)]
+                keypoint_3d = [0 for _ in range(17)]
                 # ボーンのカメラビューにおける2D座標を取得
                 for bone in armature.pose.bones:
-                    anno = get_2d_coordinates(scene, camera, bone, resolution_x, resolution_y)
+                    coordinates2d, coordinates3d,bone_name = get_coordinates(scene, camera, bone, resolution_x, resolution_y)
+                    if 0 in coordinates2d:
+                        break
+                    sort_keypoints(coordinates2d, bone_name, keypoint_2d)
+                    sort_keypoints(coordinates3d, bone_name, keypoint_3d)
+
+                keypoints_2d.append(keypoint_2d)
+                keypoints_3d.append(keypoint_2d)
 
 
 
-        # 書き込み
-        write_annotations(annotations, output_path)
 
 if __name__ == '__main__':
     input_path = '/home/masuryui/Bandai-Namco-Research-Motiondataset/dataset/Bandai-Namco-Research-Motiondataset-1/data'
