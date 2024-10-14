@@ -335,19 +335,28 @@ def main(input_path, output_path):
 
             # 空データは使わない
             if len(positions_2d) != 0:
-                positions_2d = np.round(np.array(positions_2d, dtype=np.float32), 6)
+                positions_2d = [np.round(np.array(positions_2d, dtype=np.float32), 6)] # 2dは配列の中に
                 positions_3d = np.round(np.array(positions_3d, dtype=np.float32), 6)
                 output_2d[f'data{idx+1}'][f'C{vertex_index+1}'] = positions_2d
                 output_3d[f'data{idx+1}'][f'C{vertex_index+1}'] = positions_3d
 
-        if idx == 2:
-            break
+        # if idx == 0:
+        #     break
 
-        # カメラ情報を保存
-        # for vertex_index in range(vertex_count):
-        #     camera_status = setup_camera(vertex_index, sphere_name, camera_name)
-        #     with open('camera.txt', 'a') as file:
-        #         file.write(f"C{vertex_index+1}: {camera_status}\n")
+    # カメラ情報を保存
+    for vertex_index in range(vertex_count):
+        camera_position, azimuth, quaternion = setup_camera(vertex_index, sphere_name, camera_name)
+        camera_position = [x * 1000 for x in list(camera_position)]
+        with open('camera.txt', 'a') as file:
+            file.write("{\n")
+            file.write(f"    'id': 'C{vertex_index+1}',\n")
+            file.write(f"    'orientation': {list(quaternion)},\n")
+            file.write(f"    'translation': {camera_position},\n")
+            file.write(f"    'azimuth': {azimuth},\n")
+            file.write("    'focal_length': [35.0],\n")
+            file.write("    'res_w': 1920,\n")
+            file.write("    'res_h': 1080,\n")
+            file.write("},\n")
 
 
     print("3dデータ保存ちう...")
@@ -358,7 +367,9 @@ def main(input_path, output_path):
         'keypoints_symmetry': [[4, 5, 6, 11, 12, 13], [1, 2, 3, 14, 15, 16]]
     }
     print("2dデータ保存ちう...")
-    np.savez_compressed('data_2d_blender.npz', positions_2d=output_2d, metadata=metadata)
+    np.savez_compressed('data_2d_blender_gt.npz', positions_2d=output_2d, metadata=metadata)
+
+    print("完了！")
 
 if __name__ == '__main__':
     input_path = '/home/masuryui/Bandai-Namco-Research-Motiondataset/dataset/Bandai-Namco-Research-Motiondataset-1/data'
