@@ -216,7 +216,7 @@ def camera_resolution(x=224, y=224, per=100):
     bpy.context.scene.render.resolution_percentage = per
 
 
-def get_coordinates(scene, camera, bone, resolution_x, resolution_y):
+def get_2d_coordinates(scene, camera, bone, resolution_x, resolution_y):
     '''
     カメラビューにおける二次元座標を取得
     '''
@@ -252,7 +252,20 @@ def get_coordinates(scene, camera, bone, resolution_x, resolution_y):
     coordinate_x = round(coordinate_x)
     coordinate_y = round(coordinate_y)
 
-    return [coordinate_x, coordinate_y], list(bone_world_pos), bone.name
+    return [coordinate_x, coordinate_y], bone.name
+
+
+def get_3d_coordinates(scene, camera, bone, resolution_x, resolution_y):
+    '''
+    三次元座標を取得
+    '''
+    # 足ボーンの場合はヘッドをそれ以外ではテールの座標を取得
+    if bone.name in ['UpperLeg_R', 'UpperLeg_L', 'LowerLeg_R', 'LowerLeg_L', 'Foot_R', 'Foot_L', 'Hips', 'Spine']:
+        bone_world_pos = bone.head
+    else:
+        bone_world_pos = bone.tail  # ボーンのワールド座標を取得
+
+    return list(bone_world_pos), bone.name
 
 
 def sort_keypoints(coordinats, bone_name, keypoint_list):
@@ -266,6 +279,8 @@ def sort_keypoints(coordinats, bone_name, keypoint_list):
 
 
 def main(input_path, output_path):
+    data_idx = 1
+
     resolution_x = 1920 # x横解像度
     resolution_y = 1080 # y縦解像度
 
@@ -284,14 +299,15 @@ def main(input_path, output_path):
         bpy.data.actions.remove(action)
 
     # 環境の設定
-    sphere_name, camera_name, vertex_count = setup_environment(radius=5, segments=8, ring_count=10, focal_length=35.0)
+    sphere_name, camera_name, vertex_count = setup_environment(radius=5, segments=6, ring_count=6, focal_length=35.0)
 
     output_3d = {}
     output_2d = {}
 
-    for idx, bvh_file in enumerate(tqdm(bvh_files, desc=f'bvh処理ちう')):
-        output_3d[f'data{idx+1}'] = {}
-        output_2d[f'data{idx+1}'] = {}
+    output_3d[f'data{data_idx}'] = {}
+    output_2d[f'data{data_idx}'] = {}
+    for idx, bvh_file in enumerate(bvh_files):
+
         # アーマチュア周りを初期化
         initialize_armature()
 
@@ -304,6 +320,8 @@ def main(input_path, output_path):
                 armature = obj
                 break
 
+        output_2d[f'data{data_idx}'][f'action{idx + 1}'] = [[] for _ in range(vertex_count)]
+
         for vertex_index in tqdm(range(vertex_count), desc=f'bvh処理状況{idx+1}/{len(bvh_files)}'):
             # カメラの位置設定
             camera_status = setup_camera(vertex_index, sphere_name, camera_name)
@@ -313,50 +331,65 @@ def main(input_path, output_path):
 
             positions_2d = []
             positions_3d = []
+
             for frame in range(start_frame, end_frame + 1):
                 # フレームのロード
                 bpy.context.scene.frame_set(frame)
                 scene = bpy.context.scene
                 camera = bpy.data.objects['Camera']
 
-                keypoint_2d = [0 for _ in range(17)]
-                keypoint_3d = [0 for _ in range(17)]
+                keypoint_2d = [[0, 0] for _ in range(17)]
+                keypoint_3d = [[0, 0, 0] for _ in range(17)]
 
                 # ボーンのカメラビューにおける2D座標を取得
                 for bone in armature.pose.bones:
-                    coordinates2d, coordinates3d,bone_name = get_coordinates(scene, camera, bone, resolution_x, resolution_y)
+                    coordinates2d, bone_name = get_2d_coordinates(scene, camera, bone, resolution_x, resolution_y)
                     sort_keypoints(coordinates2d, bone_name, keypoint_2d)
+                    #if vertex_index == 0:
+                    coordinates3d, bone_name = get_3d_coordinates(scene, camera, bone, resolution_x, resolution_y)
                     sort_keypoints(coordinates3d, bone_name, keypoint_3d)
 
-                # 2d座標に0を含まないようにする
-                if all(0 not in i for i in keypoint_2d):
-                    positions_2d.append(keypoint_2d)
-                    positions_3d.append(keypoint_3d)
+                # # 2d座標に0を含まないようにする
+                # if all(0 not in i for i in keypoint_2d):
+                positions_2d.append(keypoint_2d)
+                positions_3d.append(keypoint_3d)
 
-            # 空データは使わない
-            if len(positions_2d) != 0:
-                positions_2d = [np.round(np.array(positions_2d, dtype=np.float32), 6)] # 2dは配列の中に
-                positions_3d = np.round(np.array(positions_3d, dtype=np.float32), 6)
-                output_2d[f'data{idx+1}'][f'C{vertex_index+1}'] = positions_2d
-                output_3d[f'data{idx+1}'][f'C{vertex_index+1}'] = positions_3d
+            positions_2d = np.round(np.array(positions_2d, dtype=np.float32), 6)
+            output_2d[f'data{data_idx}'][f'action{idx+1}'][vertex_index] = positions_2d
+
+        positions_3d = np.round(np.array(positions_3d, dtype=np.float32), 6)
+        output_3d[f'data{data_idx}'][f'action{idx+1}'] = positions_3d
 
         # if idx == 0:
         #     break
 
     # カメラ情報を保存
-    for vertex_index in range(vertex_count):
-        camera_position, azimuth, quaternion = setup_camera(vertex_index, sphere_name, camera_name)
-        camera_position = [x * 1000 for x in list(camera_position)]
-        with open('camera.txt', 'a') as file:
-            file.write("{\n")
-            file.write(f"    'id': 'C{vertex_index+1}',\n")
-            file.write(f"    'orientation': {list(quaternion)},\n")
-            file.write(f"    'translation': {camera_position},\n")
-            file.write(f"    'azimuth': {azimuth},\n")
-            file.write("    'focal_length': [35.0],\n")
-            file.write("    'res_w': 1920,\n")
-            file.write("    'res_h': 1080,\n")
-            file.write("},\n")
+    with open('camera_intrinsics.txt', 'w') as file:
+        file.write("[\n")
+        for vertex_index in range(vertex_count):
+            camera_position, azimuth, quaternion = setup_camera(vertex_index, sphere_name, camera_name)
+            camera_position = [x * 1000 for x in list(camera_position)]
+            file.write("    {\n")
+            file.write(f"        'id': 'C{vertex_index + 1}',\n")
+            file.write(f"        'center': [960.0, 540.0],\n")
+            file.write(f"        'focal_length': [35.0, 23.33333333],\n")  #
+            file.write(f"        'radial_distortion': [0, 0, 0],\n")
+            file.write(f"        'tangential_distortion': [0, 0],\n")
+            file.write(f"        'res_w': 1920,\n")
+            file.write(f"        'res_h': 1080,\n")
+            file.write(f"        'orientation': {list(quaternion)},\n")
+            file.write(f"        'translation': {camera_position},\n")
+            file.write(f"        'azimuth': {azimuth},\n")
+            file.write("    },\n")
+        file.write("]\n")
+
+    with open('camera_extrinsics.txt', 'w') as file:
+        file.write("{\n")
+        file.write(f"    'data{data_idx}': [\n")
+        for vertex_index in range(vertex_count):
+            file.write("        {},\n")
+        file.write("    ],\n")
+        file.write("}\n")
 
 
     print("3dデータ保存ちう...")
