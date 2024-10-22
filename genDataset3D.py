@@ -2,6 +2,7 @@ import bpy
 import math
 from pathlib import Path
 from tqdm import tqdm
+import os
 
 import bmesh
 import numpy as np
@@ -279,13 +280,8 @@ def sort_keypoints(coordinats, bone_name, keypoint_list):
 
 
 def main(input_path, output_path):
-    data_idx = 1
-
     resolution_x = 1920 # x横解像度
     resolution_y = 1080 # y縦解像度
-
-    data_dir = Path(input_path)
-    bvh_files = [path for path in data_dir.iterdir() if path.suffix == '.bvh']
 
     # カメラ解像度の初期化
     camera_resolution(resolution_x, resolution_y, 100)
@@ -304,61 +300,68 @@ def main(input_path, output_path):
     output_3d = {}
     output_2d = {}
 
-    output_3d[f'data{data_idx}'] = {}
-    output_2d[f'data{data_idx}'] = {}
-    for idx, bvh_file in enumerate(bvh_files):
 
-        # アーマチュア周りを初期化
-        initialize_armature()
+    bvh_dir = Path(input_path)
+    for data_idx, data_dir in enumerate(bvh_dir.iterdir()):
 
-        # bvhデータをロード
-        setup_bvh(bvh_file)
+        bvh_files = [path for path in data_dir.iterdir() if path.suffix == '.bvh']
 
-        armature = None
-        for obj in bpy.data.objects:
-            if obj.type == 'ARMATURE':
-                armature = obj
-                break
+        output_3d[f'data{data_idx+1}'] = {}
+        output_2d[f'data{data_idx+1}'] = {}
 
-        output_2d[f'data{data_idx}'][f'action{idx + 1}'] = [[] for _ in range(vertex_count)]
+        for idx, bvh_file in enumerate(tqdm(bvh_files, desc=f'bvh処理状況{data_idx+1}/{len(list(bvh_dir.iterdir()))}')):
 
-        for vertex_index in tqdm(range(vertex_count), desc=f'bvh処理状況{idx+1}/{len(bvh_files)}'):
-            # カメラの位置設定
-            camera_status = setup_camera(vertex_index, sphere_name, camera_name)
+            # アーマチュア周りを初期化
+            initialize_armature()
 
-            # キーフレーム範囲を取得
-            start_frame, end_frame = get_keyframe_range()
+            # bvhデータをロード
+            setup_bvh(bvh_file)
 
-            positions_2d = []
-            positions_3d = []
+            armature = None
+            for obj in bpy.data.objects:
+                if obj.type == 'ARMATURE':
+                    armature = obj
+                    break
 
-            for frame in range(start_frame, end_frame + 1):
-                # フレームのロード
-                bpy.context.scene.frame_set(frame)
-                scene = bpy.context.scene
-                camera = bpy.data.objects['Camera']
+            output_2d[f'data{data_idx+1}'][f'action{idx + 1}'] = [[] for _ in range(vertex_count)]
 
-                keypoint_2d = [[0, 0] for _ in range(17)]
-                keypoint_3d = [[0, 0, 0] for _ in range(17)]
+            for vertex_index in range(vertex_count):
+                # カメラの位置設定
+                camera_status = setup_camera(vertex_index, sphere_name, camera_name)
 
-                # ボーンのカメラビューにおける2D座標を取得
-                for bone in armature.pose.bones:
-                    coordinates2d, bone_name = get_2d_coordinates(scene, camera, bone, resolution_x, resolution_y)
-                    sort_keypoints(coordinates2d, bone_name, keypoint_2d)
-                    #if vertex_index == 0:
-                    coordinates3d, bone_name = get_3d_coordinates(scene, camera, bone, resolution_x, resolution_y)
-                    sort_keypoints(coordinates3d, bone_name, keypoint_3d)
+                # キーフレーム範囲を取得
+                start_frame, end_frame = get_keyframe_range()
 
-                # # 2d座標に0を含まないようにする
-                # if all(0 not in i for i in keypoint_2d):
-                positions_2d.append(keypoint_2d)
-                positions_3d.append(keypoint_3d)
+                positions_2d = []
+                positions_3d = []
 
-            positions_2d = np.round(np.array(positions_2d, dtype=np.float32), 6)
-            output_2d[f'data{data_idx}'][f'action{idx+1}'][vertex_index] = positions_2d
+                for frame in range(start_frame, end_frame + 1):
+                    # フレームのロード
+                    bpy.context.scene.frame_set(frame)
+                    scene = bpy.context.scene
+                    camera = bpy.data.objects['Camera']
 
-        positions_3d = np.round(np.array(positions_3d, dtype=np.float32), 6)
-        output_3d[f'data{data_idx}'][f'action{idx+1}'] = positions_3d
+                    keypoint_2d = [[0, 0] for _ in range(17)]
+                    keypoint_3d = [[0, 0, 0] for _ in range(17)]
+
+                    # ボーンのカメラビューにおける2D座標を取得
+                    for bone in armature.pose.bones:
+                        coordinates2d, bone_name = get_2d_coordinates(scene, camera, bone, resolution_x, resolution_y)
+                        sort_keypoints(coordinates2d, bone_name, keypoint_2d)
+                        #if vertex_index == 0:
+                        coordinates3d, bone_name = get_3d_coordinates(scene, camera, bone, resolution_x, resolution_y)
+                        sort_keypoints(coordinates3d, bone_name, keypoint_3d)
+
+                    # # 2d座標に0を含まないようにする
+                    # if all(0 not in i for i in keypoint_2d):
+                    positions_2d.append(keypoint_2d)
+                    positions_3d.append(keypoint_3d)
+
+                positions_2d = np.round(np.array(positions_2d, dtype=np.float32), 6)
+                output_2d[f'data{data_idx+1}'][f'action{idx+1}'][vertex_index] = positions_2d
+
+            positions_3d = np.round(np.array(positions_3d, dtype=np.float32), 6)
+            output_3d[f'data{data_idx+1}'][f'action{idx+1}'] = positions_3d
 
         # if idx == 0:
         #     break
@@ -385,10 +388,11 @@ def main(input_path, output_path):
 
     with open('camera_extrinsics.txt', 'w') as file:
         file.write("{\n")
-        file.write(f"    'data{data_idx}': [\n")
-        for vertex_index in range(vertex_count):
-            file.write("        {},\n")
-        file.write("    ],\n")
+        for data_idx in range(len(list(bvh_dir.iterdir()))):
+            file.write(f"    'data{data_idx+1}': [\n")
+            for vertex_index in range(vertex_count):
+                file.write("        {},\n")
+            file.write("    ],\n")
         file.write("}\n")
 
 
@@ -405,6 +409,6 @@ def main(input_path, output_path):
     print("完了！")
 
 if __name__ == '__main__':
-    input_path = '/home/masuryui/Bandai-Namco-Research-Motiondataset/dataset/Bandai-Namco-Research-Motiondataset-1/data'
+    input_path = '/home/masuryui/Blender3DHPDataset/BVHdata'
     output_path = '/home/masuryui/Desktop/data'
     main(input_path, output_path)
