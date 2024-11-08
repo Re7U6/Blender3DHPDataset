@@ -13,46 +13,68 @@ random.seed(42)
 
 # H3.6Mに準ずる32個の関節点のうち、動作に関わる17個の関節点を用いる
 # H3.6Mとbvhのキーポイントの対応付けを以下のように定義する
+# H36MBVHの場合
 bone_mapping = {
     'Hips': 'Hip',
-    'RightHip': 'RHip',
-    'RightKnee': 'RKnee',
-    'RightAnkle': 'RFoot' ,
-    'LeftHip': 'LHip',
-    'LeftKnee': 'LKnee',
-    'LeftAnkle': 'LFoot',
-    'Chest': 'Spine',
-    'Chest2': 'Thorax',
+    'RightUpLeg': 'RHip',
+    'RightLowLeg': 'RKnee',
+    'RightFoot': 'RFoot' ,
+    'LeftUpLeg': 'LHip',
+    'LeftLowLeg': 'LKnee',
+    'LeftFoot': 'LFoot',
+    'Spine': 'Spine',
+    'Spine1': 'Thorax',
     'Neck': 'Neck',
     'Head': 'Head',
-    'RightCollar': 'RShoulder',
-    'RightShoulder': 'RElbow',
-    'RightElbow': 'RWrist',
-    'LeftCollar': 'LShoulder',
-    'LeftShoulder': 'LElbow',
-    'LeftElbow': 'LWrist'
+    'RightShoulder': 'RShoulder',
+    'RightUpArm': 'RElbow',
+    'RightForeArm': 'RWrist',
+    'LeftShoulder': 'LShoulder',
+    'LeftUpArm': 'LElbow',
+    'LeftForeArm': 'LWrist'
 }
 
+# Mocapdatasetの場合
+# bone_mapping = {
+#     'Hips': 'Hip',
+#     'RightHip': 'RHip',
+#     'RightKnee': 'RKnee',
+#     'RightAnkle': 'RFoot' ,
+#     'LeftHip': 'LHip',
+#     'LeftKnee': 'LKnee',
+#     'LeftAnkle': 'LFoot',
+#     'Chest': 'Spine',
+#     'Chest2': 'Thorax',
+#     'Neck': 'Neck',
+#     'Head': 'Head',
+#     'RightCollar': 'RShoulder',
+#     'RightShoulder': 'RElbow',
+#     'RightElbow': 'RWrist',
+#     'LeftCollar': 'LShoulder',
+#     'LeftShoulder': 'LElbow',
+#     'LeftElbow': 'LWrist'
+# }
+
 # BandaiDatasetの場合
-bone_mapping2 = {
-    'Hips': 'Hip',
-    'UpperLeg_R': 'RHip',
-    'LowerLeg_R': 'RKnee',
-    'Foot_R': 'RFoot' ,
-    'UpperLeg_L': 'LHip',
-    'LowerLeg_L': 'LKnee',
-    'Foot_L': 'LFoot',
-    'Spine': 'Spine',
-    'Chest': 'Thorax',
-    'Neck': 'Neck',
-    'Head': 'Head',
-    'Shoulder_R': 'RShoulder',
-    'UpperArm_R': 'RElbow',
-    'LowerArm_R': 'RWrist',
-    'Shoulder_L': 'LShoulder',
-    'UpperArm_L': 'LElbow',
-    'LowerArm_L': 'LWrist'
-}
+# bone_mapping = {
+#     'Hips': 'Hip',
+#     'UpperLeg_R': 'RHip',
+#     'LowerLeg_R': 'RKnee',
+#     'Foot_R': 'RFoot' ,
+#     'UpperLeg_L': 'LHip',
+#     'LowerLeg_L': 'LKnee',
+#     'Foot_L': 'LFoot',
+#     'Spine': 'Spine',
+#     'Chest': 'Thorax',
+#     'Neck': 'Neck',
+#     'Head': 'Head',
+#     'Shoulder_R': 'RShoulder',
+#     'UpperArm_R': 'RElbow',
+#     'LowerArm_R': 'RWrist',
+#     'Shoulder_L': 'LShoulder',
+#     'UpperArm_L': 'LElbow',
+#     'LowerArm_L': 'LWrist'
+# }
 
 # h36mにおけるボーンの順序
 bone_order = {
@@ -75,14 +97,17 @@ bone_order = {
     'RWrist': 16
 }
 
-# bandaiデータセットを使う場合、rootと手は使わないので隠す
+# bandaiデータセットを使う場合、rootや手などは使わないので隠す
 # ただし足はヘッドを使うため残す
-bones_to_hide = ['RightWrist', 'LeftWrist', 'reference']
-bones_to_hide2 = ['joint_Root', 'Hand_R', 'Hand_L', 'Toes_R', 'Toes_L']
+bones_to_hide = ['LeftHandThumb', 'LeftHand', 'L_Wrist_End', 'RightHandThumb', 'RightHand', 'R_Wrist_End',
+                 'LeftToeBase', 'RightToeBase']
+# bones_to_hide = ['RightWrist', 'LeftWrist', 'reference']
+# bones_to_hide = ['joint_Root', 'Hand_R', 'Hand_L', 'Toes_R', 'Toes_L']
 
 # headの座標を取得する場合
-bones_head = ['RightHip', 'LeftHip', 'RightKnee', 'LeftKnee', 'RightAnkle', 'LeftKnee', 'Hips', 'Chest']
-bones_head2 = ['UpperLeg_R', 'UpperLeg_L', 'LowerLeg_R', 'LowerLeg_L', 'Foot_R', 'Foot_L', 'Hips', 'Spine']
+bones_head = ['LeftFoot', 'RightFoot', 'LeftLowLeg', 'RightLowLeg', 'LeftUpLeg', 'RightUpLeg', 'Hips']
+# bones_head = ['RightHip', 'LeftHip', 'RightKnee', 'LeftKnee', 'RightAnkle', 'LeftKnee', 'Hips', 'Chest']
+# bones_head = ['UpperLeg_R', 'UpperLeg_L', 'LowerLeg_R', 'LowerLeg_L', 'Foot_R', 'Foot_L', 'Hips', 'Spine']
 
 
 def initialize_armature():
@@ -112,13 +137,13 @@ def setup_bvh(bvh_file):
         filepath=str(bvh_file),
         filter_glob='*.bvh',
         target='ARMATURE',
-        global_scale=0.025,
+        global_scale=0.1,
         frame_start=1,
         use_fps_scale=False,
         use_cyclic=False,
         rotate_mode='NATIVE',
-        axis_forward='-Z',
-        axis_up='Y'
+        axis_forward='-Y',
+        axis_up='Z'
     )
 
     for obj in bpy.data.objects:
@@ -130,24 +155,6 @@ def setup_bvh(bvh_file):
         bone = armature.data.edit_bones.get(bone_name)
         if bone:
             armature.data.edit_bones.remove(bone)
-
-    # Headが無いときは
-    # for bone_name in bones_to_hide:
-    #     bone = armature.data.edit_bones.get(bone_name)
-    #     if bone:
-    #         armature.data.edit_bones.remove(bone)
-    #
-    # edit_bones = armature.data.edit_bones
-    # head_bone = edit_bones.get('Head')
-    # neck_bone = edit_bones.get('Neck')
-    # if head_bone.length < 0.5:
-    #     edit_bones.remove(head_bone)
-    #     new_head_bone = edit_bones.new('Head')
-    #     direction = (neck_bone.tail - neck_bone.head).normalized()
-    #     head_length = neck_bone.length
-    #     new_head_bone.head = neck_bone.tail
-    #     new_head_bone.tail = neck_bone.tail + direction * head_length
-    #     new_head_bone.parent = neck_bone
 
     bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -314,27 +321,19 @@ def adjust_scale_to_height(obj, min_height=1.55, max_height=1.85):
     '''
     アーマチュアの大きさを統一
     '''
-    # ボーンの最小・最大位置を計算 (Z軸方向)
-    min_z = float('inf')
-    max_z = float('-inf')    
-    # ボーンの各位置をチェック
-    for bone in obj.pose.bones:
-        # ボーンのヘッドとテールの位置を用いてZ軸方向の最小・最大値を計算
-        bone_head_z = bone.head[2]
-        bone_tail_z = bone.tail[2]
-        
-        min_z = min(min_z, bone_head_z, bone_tail_z)
-        max_z = max(max_z, bone_head_z, bone_tail_z)
-    
-    # 現在の高さを計算
-    current_height = max_z - min_z
-    target_height = random.uniform(min_height, max_height)
-    # スケールの調整係数を計算
-    scale_factor = target_height / current_height   
-    # スケールを調整・適用
-    obj.scale = (obj.scale[0] * scale_factor, obj.scale[1] * scale_factor, obj.scale[2] * scale_factor)
-    bpy.ops.object.transform_apply(scale=True)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    bpy.context.view_layer.objects.active = obj
+    obj.select_set(True)
 
+    bbox = obj.bound_box
+    min_z = min([v[2] for v in bbox])
+    max_z = max([v[2] for v in bbox])
+
+    current_height = (max_z - min_z) * obj.scale[2]
+    target_height = random.uniform(min_height, max_height)
+    scale_factor = target_height / current_height
+
+    bpy.ops.transform.resize(value=(scale_factor, scale_factor, scale_factor))
 
 
 def main(input_path, output_path):
@@ -375,12 +374,11 @@ def main(input_path, output_path):
 
             # bvhデータをロード
             setup_bvh(bvh_file)
+            file_name = Path(bvh_file).stem
             
-            # インポートされたオブジェクトを取得
-            obj = bpy.context.selected_objects[0]
-
             # 高さが160cmになるようにスケールを調整
-            adjust_scale_to_height(obj, min_height=1.55, max_height=1.85)
+            # obj = bpy.context.selected_objects[0]
+            # adjust_scale_to_height(obj, min_height=1.55, max_height=1.85)
 
             armature = None
             for obj in bpy.data.objects:
@@ -389,7 +387,7 @@ def main(input_path, output_path):
                     break
 
             try:
-                output_2d[dir_name][f'action{idx + 1}'] = [[] for _ in range(vertex_count)]
+                output_2d[dir_name][file_name] = [[] for _ in range(vertex_count)]
             
                 for vertex_index in range(vertex_count):
                     # カメラの位置設定
@@ -424,10 +422,10 @@ def main(input_path, output_path):
                         positions_3d.append(keypoint_3d)
 
                     positions_2d = np.round(np.array(positions_2d, dtype=np.float32), 6)
-                    output_2d[dir_name][f'action{idx+1}'][vertex_index] = positions_2d
+                    output_2d[dir_name][file_name][vertex_index] = positions_2d
 
                 positions_3d = np.round(np.array(positions_3d, dtype=np.float32), 6)
-                output_3d[dir_name][f'action{idx+1}'] = positions_3d
+                output_3d[dir_name][file_name] = positions_3d
                 
             except KeyError as e:
                 print(f"Error: {e}. 次のBVHファイルに進みます")
@@ -483,6 +481,6 @@ def main(input_path, output_path):
     print("完了！")
 
 if __name__ == '__main__':
-    input_path = '/home/masuryui/Blender3DHPDataset/bvh_data'
+    input_path = '/home/masuryui/Blender3DHPDataset/bvh'
     output_path = '/home/masuryui/Desktop/data'
     main(input_path, output_path)
