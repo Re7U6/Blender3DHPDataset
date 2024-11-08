@@ -6,7 +6,7 @@ from common.mocap_dataset import MocapDataset
 from common.camera import normalize_screen_coordinates
 
 # スケルトンの親子関係と左右の定義
-blender_skeleton = Skeleton(parents=[-1, 0, 1, 2, 0, 4, 5, 0, 7, 8, 9, 8, 11, 12, 8,14, 15],
+blender_skeleton = Skeleton(parents=[-1, 0, 1, 2, 0, 4, 5, 0, 7, 8, 9, 8, 11, 12, 8, 14, 15],
                             joints_left=[4, 5, 6, 11, 12, 13],
                             joints_right=[1, 2, 3, 14, 15, 16])
 
