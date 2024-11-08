@@ -314,27 +314,19 @@ def adjust_scale_to_height(obj, min_height=1.55, max_height=1.85):
     '''
     アーマチュアの大きさを統一
     '''
-    # ボーンの最小・最大位置を計算 (Z軸方向)
-    min_z = float('inf')
-    max_z = float('-inf')    
-    # ボーンの各位置をチェック
-    for bone in obj.pose.bones:
-        # ボーンのヘッドとテールの位置を用いてZ軸方向の最小・最大値を計算
-        bone_head_z = bone.head[2]
-        bone_tail_z = bone.tail[2]
-        
-        min_z = min(min_z, bone_head_z, bone_tail_z)
-        max_z = max(max_z, bone_head_z, bone_tail_z)
-    
-    # 現在の高さを計算
-    current_height = max_z - min_z
-    target_height = random.uniform(min_height, max_height)
-    # スケールの調整係数を計算
-    scale_factor = target_height / current_height   
-    # スケールを調整・適用
-    obj.scale = (obj.scale[0] * scale_factor, obj.scale[1] * scale_factor, obj.scale[2] * scale_factor)
-    bpy.ops.object.transform_apply(scale=True)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    bpy.context.view_layer.objects.active = obj
+    obj.select_set(True)
 
+    bbox = obj.bound_box
+    min_z = min([v[2] for v in bbox])
+    max_z = max([v[2] for v in bbox])
+
+    current_height = (max_z - min_z) * obj.scale[2]
+    target_height = random.uniform(min_height, max_height)
+    scale_factor = target_height / current_height
+
+    bpy.ops.transform.resize(value=(scale_factor, scale_factor, scale_factor))
 
 
 def main(input_path, output_path):
